@@ -84,6 +84,8 @@ func (sys *System) parseInstruction() {
 	// JMP - jump to address
 	case 0x1000:
 		sys.pc = op & 0x0FFF
+
+		sys.programCounter++
 		break
 
 	// CALL - call subroutine
@@ -91,6 +93,8 @@ func (sys *System) parseInstruction() {
 		// FIXME handle error
 		sys.stack.push(sys.programCounter)
 		sys.pc = op & 0x0FFF
+
+		sys.programCounter++
 		break
 
 	// SE - Skip next instruction if Vx == val
@@ -102,7 +106,7 @@ func (sys *System) parseInstruction() {
 		} else {
 			sys.programCounter++
 		}
-	}
+		break
 
 	// SNE - skip next instruction if Vx != val
 	case 0x4000:
@@ -113,6 +117,7 @@ func (sys *System) parseInstruction() {
 		} else {
 			sys.programCounter += 2
 		}
+		break
 
 	// SE - skip if Vx == Vy
 	case 0x5000:
@@ -124,6 +129,7 @@ func (sys *System) parseInstruction() {
 		} else {
 			sys.programCounter++
 		}
+		break
 
 	// LD - sets register
 	case 0x6000:
@@ -131,11 +137,17 @@ func (sys *System) parseInstruction() {
 		val := op & 0x00FF
 		sys.registers[registerIndex] = val
 
+		sys.programCounter++
+		break
+
 	// ADD - Vx = Vx + val
 	case 0x7000:
 		registerIndex := (op & 0x0F00) >> 2
 		val := op & 0x00FF
 		sys.registers[registerIndex] += val
+
+		sys.programCounter++
+		break
 
 	// Operation between two registers
 	case 0x8000:
@@ -147,13 +159,22 @@ func (sys *System) parseInstruction() {
 			case 0x1:
 				sys.registers[registerA] |= sys.registers[registerB]
 
+				sys.programCounter++
+				break
+
 			// AND
 			case 0x2:
 				sys.registers[registerA] &= sys.registers[registerB]
 
+				sys.programCounter++
+				break
+
 			// XOR
 			case 0x3:
 				sys.registers[registerA] ^= sys.registers[registerB]
+
+				sys.programCounter++
+				break
 
 			// ADD
 			case 0x4:
@@ -167,6 +188,9 @@ func (sys *System) parseInstruction() {
 					sys.registers[0xF] = 1
 				}
 
+				sys.programCounter++
+				break
+
 			// SUB
 			case 0x5:
 				if (sys.registers[registerA] > sys.registers[registerB]) {
@@ -176,6 +200,9 @@ func (sys *System) parseInstruction() {
 				}
 
 				sys.registers[registerA] -= sys.registers[registerB]
+
+				sys.programCounter++
+				break
 
 			// SHR
 			case 0x6:
@@ -187,6 +214,9 @@ func (sys *System) parseInstruction() {
 
 				sys.registers[registerA] /= 2
 
+				sys.programCounter++
+				break
+
 			// SUBN
 			case 0x7:
 				if (sys.registers[registerB] > sys.registers[registerA]) {
@@ -197,6 +227,9 @@ func (sys *System) parseInstruction() {
 
 				sys.registers[registerA] = sys.registers[registerB] - sys.registers[registerA]
 
+				sys.programCounter++
+				break
+
 			// SHL
 			case 0xE:
 				if (sys.registers[registerA] & 0x1) == 1 {
@@ -206,7 +239,11 @@ func (sys *System) parseInstruction() {
 				}
 
 				sys.registers[registerA] *= 2
+
+				sys.programCounter++
+				break
 		}
+		break
 
 	// SNE
 	case 0x9000:
@@ -218,22 +255,28 @@ func (sys *System) parseInstruction() {
 		} else {
 			sys.programCounter += 1
 		}
+		break
 
 	// LD
 	case 0xA000:
 		sys.iregister = op & 0x0FFF
+
 		sys.programCounter++
+		break
 
 	// JMP
 	case 0xB000:
 		sys.programCounter = (op & 0x0FFF) + sys.registers[0x0]
+		break
 
 	// RND
 	case 0xC000:
 		registerIndex := (op & 0x0F00) >> 2
 		val := op & 0x00FF
 		sys.registers[registerIndex] = val & byte(rand.Intn(256))
+
 		sys.programCounter++
+		break
 
 	// DRW
 	case 0xD000:
@@ -258,7 +301,9 @@ func (sys *System) parseInstruction() {
 		case 0x0007:
 			registerIndex := (op & 0x0F00) >> 2
 			sys.registers[registerIndex] = sys.delayTimer
+
 			sys.programCounter++
+			break
 
 		// LD - load from input
 		case 0x000A:
@@ -268,19 +313,25 @@ func (sys *System) parseInstruction() {
 		case 0x0015:
 			registerIndex := (op & 0x0F00) >> 2
 			sys.delayTimer = sys.registers[registerIndex]
+
 			sys.programCounter++
+			break
 
 		// LD - Set sound timer
 		case 0x0018:
 			registerIndex := (op & 0x0F00) >> 2
 			sys.soundTimer = sys.registers[registerIndex]
+
 			sys.programCounter++
+			break
 
 		// ADD - I and Vx
 		case 0x001E:
 			registerIndex := (op & 0x0F00) >> 2
 			sys.iregister += registerIndex
+
 			sys.programCounter++
+			break
 
 		// LD - Set I to the value of the location of the sprite
 		case 0x0029:
@@ -302,6 +353,7 @@ func (sys *System) parseInstruction() {
 			sys.memory[sys.iregister + 2] = one
 
 			sys.programCounter++
+			break
 
 		// LD - store registers in memory
 		case 0x0055:
@@ -312,6 +364,7 @@ func (sys *System) parseInstruction() {
 			}
 
 			sys.programCounter++
+			break
 
 		// LD - load register from memory
 		case 0x0065:
@@ -322,7 +375,9 @@ func (sys *System) parseInstruction() {
 			}
 
 			sys.programCounter++
+			break
 		}
+		break
 
 	default:
 }
