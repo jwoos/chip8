@@ -34,7 +34,7 @@ import (
 
 type System struct {
 	// 4096 bytes
-	memory []uint16
+	memory []byte
 
 	// 16 byte registers
 	registers []byte
@@ -50,10 +50,18 @@ type System struct {
 	opcode uint16
 }
 
+func (sys *System) incrementPC(skip bool) {
+	if !skip {
+		sys.programCounter += 2
+	} else {
+		sys.programCounter += 4
+	}
+}
+
 
 func newSystem() *System {
 	sys := new(System)
-	sys.memory = make([]byte, 2048)
+	sys.memory = make([]byte, 4096)
 	sys.registers = make([]byte, 16)
 	sys.stack = newStack(16)
 	sys.programCounter = 0x200
@@ -85,7 +93,7 @@ func (sys *System) parseInstruction() {
 	case 0x1000:
 		sys.pc = op & 0x0FFF
 
-		sys.programCounter++
+		sys.incrementPC(false)
 		break
 
 	// CALL - call subroutine
@@ -94,7 +102,7 @@ func (sys *System) parseInstruction() {
 		sys.stack.push(sys.programCounter)
 		sys.pc = op & 0x0FFF
 
-		sys.programCounter++
+		sys.incrementPC(false)
 		break
 
 	// SE - Skip next instruction if Vx == val
@@ -102,9 +110,9 @@ func (sys *System) parseInstruction() {
 		registerIndex := (op & 0x0F00) >> 2
 		lastHalf := op & 0x00FF
 		if sys.registers[registerIndex] == lastHalf {
-			sys.programCounter += 2
+			sys.incrementPC(true)
 		} else {
-			sys.programCounter++
+			sys.incrementPC(false)
 		}
 		break
 
@@ -113,9 +121,9 @@ func (sys *System) parseInstruction() {
 		registerIndex := (op & 0x0F00) >> 2
 		lastHalf := op & 0x00FF
 		if sys.registers[registerIndex] == lastHalf {
-			sys.programCounter++
+			sys.incrementPC(false)
 		} else {
-			sys.programCounter += 2
+			sys.incrementPC(true)
 		}
 		break
 
@@ -125,9 +133,9 @@ func (sys *System) parseInstruction() {
 		registerB := (op & 0x00F0) >> 1
 
 		if sys.registers[registerA] == sys.registers[registerB] {
-			sys.programCounter += 2
+			sys.incrementPC(true)
 		} else {
-			sys.programCounter++
+			sys.incrementPC(false)
 		}
 		break
 
@@ -137,7 +145,7 @@ func (sys *System) parseInstruction() {
 		val := op & 0x00FF
 		sys.registers[registerIndex] = val
 
-		sys.programCounter++
+		sys.incrementPC(false)
 		break
 
 	// ADD - Vx = Vx + val
@@ -146,7 +154,7 @@ func (sys *System) parseInstruction() {
 		val := op & 0x00FF
 		sys.registers[registerIndex] += val
 
-		sys.programCounter++
+		sys.incrementPC(false)
 		break
 
 	// Operation between two registers
@@ -159,21 +167,21 @@ func (sys *System) parseInstruction() {
 			case 0x1:
 				sys.registers[registerA] |= sys.registers[registerB]
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 
 			// AND
 			case 0x2:
 				sys.registers[registerA] &= sys.registers[registerB]
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 
 			// XOR
 			case 0x3:
 				sys.registers[registerA] ^= sys.registers[registerB]
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 
 			// ADD
@@ -188,7 +196,7 @@ func (sys *System) parseInstruction() {
 					sys.registers[0xF] = 1
 				}
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 
 			// SUB
@@ -201,7 +209,7 @@ func (sys *System) parseInstruction() {
 
 				sys.registers[registerA] -= sys.registers[registerB]
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 
 			// SHR
@@ -214,7 +222,7 @@ func (sys *System) parseInstruction() {
 
 				sys.registers[registerA] /= 2
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 
 			// SUBN
@@ -227,7 +235,7 @@ func (sys *System) parseInstruction() {
 
 				sys.registers[registerA] = sys.registers[registerB] - sys.registers[registerA]
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 
 			// SHL
@@ -240,7 +248,7 @@ func (sys *System) parseInstruction() {
 
 				sys.registers[registerA] *= 2
 
-				sys.programCounter++
+				sys.incrementPC(false)
 				break
 		}
 		break
@@ -251,9 +259,9 @@ func (sys *System) parseInstruction() {
 		registerB := (op & 0x00F0) >> 1
 
 		if sys.registers[registerA] != sys.registers[registerB] {
-			sys.programCounter += 2
+			sys.incrementPC(true)
 		} else {
-			sys.programCounter += 1
+			sys.incrementPC(false)
 		}
 		break
 
@@ -261,7 +269,7 @@ func (sys *System) parseInstruction() {
 	case 0xA000:
 		sys.iregister = op & 0x0FFF
 
-		sys.programCounter++
+		sys.incrementPC(false)
 		break
 
 	// JMP
@@ -275,7 +283,7 @@ func (sys *System) parseInstruction() {
 		val := op & 0x00FF
 		sys.registers[registerIndex] = val & byte(rand.Intn(256))
 
-		sys.programCounter++
+		sys.incrementPC(false)
 		break
 
 	// DRW
@@ -302,7 +310,7 @@ func (sys *System) parseInstruction() {
 			registerIndex := (op & 0x0F00) >> 2
 			sys.registers[registerIndex] = sys.delayTimer
 
-			sys.programCounter++
+			sys.incrementPC(false)
 			break
 
 		// LD - load from input
@@ -314,7 +322,7 @@ func (sys *System) parseInstruction() {
 			registerIndex := (op & 0x0F00) >> 2
 			sys.delayTimer = sys.registers[registerIndex]
 
-			sys.programCounter++
+			sys.incrementPC(false)
 			break
 
 		// LD - Set sound timer
@@ -322,7 +330,7 @@ func (sys *System) parseInstruction() {
 			registerIndex := (op & 0x0F00) >> 2
 			sys.soundTimer = sys.registers[registerIndex]
 
-			sys.programCounter++
+			sys.incrementPC(false)
 			break
 
 		// ADD - I and Vx
@@ -330,7 +338,7 @@ func (sys *System) parseInstruction() {
 			registerIndex := (op & 0x0F00) >> 2
 			sys.iregister += registerIndex
 
-			sys.programCounter++
+			sys.incrementPC(false)
 			break
 
 		// LD - Set I to the value of the location of the sprite
@@ -352,7 +360,7 @@ func (sys *System) parseInstruction() {
 			sys.memory[sys.iregister + 1] = ten
 			sys.memory[sys.iregister + 2] = one
 
-			sys.programCounter++
+			sys.incrementPC(false)
 			break
 
 		// LD - store registers in memory
@@ -363,7 +371,7 @@ func (sys *System) parseInstruction() {
 				sys.memory[sys.iregister + i] = sys.registers[i]
 			}
 
-			sys.programCounter++
+			sys.incrementPC(false)
 			break
 
 		// LD - load register from memory
@@ -374,7 +382,7 @@ func (sys *System) parseInstruction() {
 				sys.registers[i] = sys.memory[sys.iregister + i]
 			}
 
-			sys.programCounter++
+			sys.incrementPC(false)
 			break
 		}
 		break
