@@ -2,8 +2,10 @@ package main
 
 
 import (
-	"math/rand"
+	"errors"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 )
 
 
@@ -59,7 +61,7 @@ func newSystem() *System {
 	sys.stack = newStack(16)
 	sys.programCounter = 0x200
 
-	return mem
+	return sys
 }
 
 func (sys *System) incrementPC(skip bool) {
@@ -87,7 +89,7 @@ func (sys *System) loadROM(data []byte) {
 	}
 }
 
-func (sys *System) parseInstruction() {
+func (sys *System) parseInstruction() error {
 	op := sys.opcode
 
 	switch op & 0xF000 {
@@ -108,7 +110,7 @@ func (sys *System) parseInstruction() {
 
 	// JMP - jump to address
 	case 0x1000:
-		sys.pc = op & 0x0FFF
+		sys.programCounter = op & 0x0FFF
 
 		sys.incrementPC(false)
 		break
@@ -117,7 +119,7 @@ func (sys *System) parseInstruction() {
 	case 0x2000:
 		// FIXME handle error
 		sys.stack.push(sys.programCounter)
-		sys.pc = op & 0x0FFF
+		sys.programCounter = op & 0x0FFF
 
 		sys.incrementPC(false)
 		break
@@ -125,7 +127,7 @@ func (sys *System) parseInstruction() {
 	// SE - Skip next instruction if Vx == val
 	case 0x3000:
 		registerIndex := (op & 0x0F00) >> 2
-		lastHalf := op & 0x00FF
+		lastHalf := byte(op & 0x00FF)
 		if sys.registers[registerIndex] == lastHalf {
 			sys.incrementPC(true)
 		} else {
@@ -136,7 +138,7 @@ func (sys *System) parseInstruction() {
 	// SNE - skip next instruction if Vx != val
 	case 0x4000:
 		registerIndex := (op & 0x0F00) >> 2
-		lastHalf := op & 0x00FF
+		lastHalf := byte(op & 0x00FF)
 		if sys.registers[registerIndex] == lastHalf {
 			sys.incrementPC(false)
 		} else {
@@ -159,7 +161,7 @@ func (sys *System) parseInstruction() {
 	// LD - sets register
 	case 0x6000:
 		registerIndex := (op & 0x0F00) >> 2
-		val := op & 0x00FF
+		val := byte(op & 0x00FF)
 		sys.registers[registerIndex] = val
 
 		sys.incrementPC(false)
@@ -168,7 +170,7 @@ func (sys *System) parseInstruction() {
 	// ADD - Vx = Vx + val
 	case 0x7000:
 		registerIndex := (op & 0x0F00) >> 2
-		val := op & 0x00FF
+		val := byte(op & 0x00FF)
 		sys.registers[registerIndex] += val
 
 		sys.incrementPC(false)
@@ -291,13 +293,13 @@ func (sys *System) parseInstruction() {
 
 	// JMP
 	case 0xB000:
-		sys.programCounter = (op & 0x0FFF) + sys.registers[0x0]
+		sys.programCounter = (op & 0x0FFF) + uint16(sys.registers[0x0])
 		break
 
 	// RND
 	case 0xC000:
 		registerIndex := (op & 0x0F00) >> 2
-		val := op & 0x00FF
+		val := byte(op & 0x00FF)
 		sys.registers[registerIndex] = val & byte(rand.Intn(256))
 
 		sys.incrementPC(false)
@@ -384,7 +386,7 @@ func (sys *System) parseInstruction() {
 		case 0x0055:
 			limit := (op & 0x0F00) >> 2
 
-			for i := 0; i <= limit; i++ {
+			for i := uint16(0); i <= limit; i++ {
 				sys.memory[sys.iregister + i] = sys.registers[i]
 			}
 
@@ -395,7 +397,7 @@ func (sys *System) parseInstruction() {
 		case 0x0065:
 			limit := (op & 0x0F00) >> 2
 
-			for i := 0; i <= limit; i++ {
+			for i := uint16(0); i <= limit; i++ {
 				sys.registers[i] = sys.memory[sys.iregister + i]
 			}
 
@@ -405,4 +407,8 @@ func (sys *System) parseInstruction() {
 		break
 
 	default:
+		return errors.New(fmt.Sprintf("Invalid operation: %x", op))
+	}
+
+	return nil
 }

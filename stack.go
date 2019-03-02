@@ -19,7 +19,7 @@ func newStack(size uint) *Stack {
 
 
 func (stack *Stack) push(item uint16) error {
-	if index == capacity {
+	if stack.index == stack.capacity {
 		return errors.New("Stack is full")
 	}
 
@@ -31,20 +31,20 @@ func (stack *Stack) push(item uint16) error {
 
 
 func (stack *Stack) pop(item uint16) (uint16, error) {
-	if index == 0 {
+	if stack.index == 0 {
 		return 0, errors.New("Stack is empty")
 	}
 
 	stack.index--
-	item := stack.memory[stack.index]
+	retrieved := stack.memory[stack.index]
 	stack.memory[stack.index] = 0
 
-	return item, nil
+	return retrieved, nil
 }
 
 
 func (stack *Stack) peek() (uint16, error) {
-	if index == 0 {
+	if stack.index == 0 {
 		return 0, errors.New("Stack is empty")
 	}
 
@@ -53,9 +53,5 @@ func (stack *Stack) peek() (uint16, error) {
 
 
 func (stack *Stack) size() uint {
-	return len(stack.memory)
-}
-
-func (stack *Stack) capacity() uint {
-	return stack.capacity
+	return uint(len(stack.memory))
 }
