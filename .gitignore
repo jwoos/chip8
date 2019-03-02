@@ -10,3 +10,9 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# exe
+go_chip8
+
+# all chip8 files
+*.ch8
