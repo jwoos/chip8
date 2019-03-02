@@ -3,6 +3,7 @@ package main
 
 import (
 	"math/rand"
+	"io/ioutil"
 )
 
 
@@ -50,14 +51,6 @@ type System struct {
 	opcode uint16
 }
 
-func (sys *System) incrementPC(skip bool) {
-	if !skip {
-		sys.programCounter += 2
-	} else {
-		sys.programCounter += 4
-	}
-}
-
 
 func newSystem() *System {
 	sys := new(System)
@@ -69,6 +62,30 @@ func newSystem() *System {
 	return mem
 }
 
+func (sys *System) incrementPC(skip bool) {
+	if !skip {
+		sys.programCounter += 2
+	} else {
+		sys.programCounter += 4
+	}
+}
+
+func (sys *System) loadROMFile(path string) error {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	sys.loadROM(data)
+
+	return nil
+}
+
+func (sys *System) loadROM(data []byte) {
+	for i, b := range data {
+		sys.memory[0x200 + i] = b
+	}
+}
 
 func (sys *System) parseInstruction() {
 	op := sys.opcode
