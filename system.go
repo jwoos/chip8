@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+
+	"github.com/nsf/termbox-go"
 )
 
 
@@ -97,6 +99,14 @@ func (sys *System) parseInstruction() error {
 		switch op {
 		// CLS - Clear display
 		case 0x00E0:
+			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+			err := termbox.Flush()
+			if err != nil {
+				return err
+			}
+
+			sys.incrementPC(false)
+			break
 
 		// RET - return from subroutine
 		case 0x00EE:
