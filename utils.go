@@ -65,12 +65,12 @@ func bits(num interface{}) ([]bool, error) {
 	data := make([]bool, size)
 
 	if flag {
-		for i := uint(0); i < uint(size); i++ {
-			data[i] = ((concreteInt >> i) & 0x1) == 0x1
+		for i := 0; i < size; i++ {
+			data[i] = ((concreteInt >> uint(size - 1 - i)) & 0x1) == 0x1
 		}
 	} else {
-		for i := uint(0); i < uint(size); i++ {
-			data[i] = ((concreteUint >> i) & 0x1) == 0x1
+		for i := 0; i < size; i++ {
+			data[i] = ((concreteUint >> uint(size - 1 - i)) & 0x1) == 0x1
 		}
 	}
 

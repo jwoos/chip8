@@ -29,12 +29,10 @@ func main() {
 	 *}
 	 */
 
-	buffer := termbox.CellBuffer()
-	for i, ch := range "Press esc to quit" {
-		buffer[i].Ch = ch
+	for i := 0; i < 2; i++ {
+		sys.readInstruction()
+		sys.parseInstruction()
 	}
-	termbox.Flush()
-
 	for {
 		ev := termbox.PollEvent()
 		if ev.Type == termbox.EventKey && ev.Key == termbox.KeyEsc {

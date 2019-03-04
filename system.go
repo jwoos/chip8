@@ -134,6 +134,10 @@ func (sys *System) loadROM(data []byte) {
 	}
 }
 
+func (sys *System) readInstruction() {
+	sys.opcode = (uint16(sys.memory[sys.programCounter]) << 8) | uint16(sys.memory[sys.programCounter + 1])
+}
+
 func (sys *System) clearDisplay() {
 	for i := 0; i < len(sys.display); i++ {
 		for j := 0; j < len(sys.display[i]); j++ {
@@ -381,6 +385,7 @@ func (sys *System) parseInstruction() error {
 			}
 
 			cells := termbox.CellBuffer()
+			width, _ := termbox.Size()
 
 			for j := uint16(0); j < uint16(len(toDrawBits)); j++ {
 				prev := sys.display[y + i][x + j]
@@ -391,9 +396,9 @@ func (sys *System) parseInstruction() error {
 				}
 
 				if sys.display[y + i][x + j] {
-					cells[(DISPLAY_WIDTH * (y + i)) + (x + j)].Ch = '█'
+					cells[(uint16(width) * (y + i)) + (x + j)].Ch = '█'
 				} else {
-					cells[(DISPLAY_WIDTH * (y + i)) + (x + j)].Ch = ' '
+					cells[(uint16(width) * (y + i)) + (x + j)].Ch = ' '
 				}
 			}
 		}
