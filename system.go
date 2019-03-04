@@ -136,7 +136,7 @@ func (sys *System) parseInstruction() error {
 
 	// SE - Skip next instruction if Vx == val
 	case 0x3000:
-		registerIndex := (op & 0x0F00) >> 0x2
+		registerIndex := (op & 0x0F00) >> 8
 		lastHalf := byte(op & 0x00FF)
 		if sys.registers[registerIndex] == lastHalf {
 			sys.incrementPC(true)
@@ -147,7 +147,7 @@ func (sys *System) parseInstruction() error {
 
 	// SNE - skip next instruction if Vx != val
 	case 0x4000:
-		registerIndex := (op & 0x0F00) >> 0x2
+		registerIndex := (op & 0x0F00) >> 8
 		lastHalf := byte(op & 0x00FF)
 		if sys.registers[registerIndex] == lastHalf {
 			sys.incrementPC(false)
@@ -158,8 +158,8 @@ func (sys *System) parseInstruction() error {
 
 	// SE - skip if Vx == Vy
 	case 0x5000:
-		registerA := (op & 0x0F00) >> 0x2
-		registerB := (op & 0x00F0) >> 0x1
+		registerA := (op & 0x0F00) >> 8
+		registerB := (op & 0x00F0) >> 4
 
 		if sys.registers[registerA] == sys.registers[registerB] {
 			sys.incrementPC(true)
@@ -170,7 +170,7 @@ func (sys *System) parseInstruction() error {
 
 	// LD - sets register
 	case 0x6000:
-		registerIndex := (op & 0x0F00) >> 0x2
+		registerIndex := (op & 0x0F00) >> 8
 		val := byte(op & 0x00FF)
 		sys.registers[registerIndex] = val
 
@@ -179,7 +179,7 @@ func (sys *System) parseInstruction() error {
 
 	// ADD - Vx = Vx + val
 	case 0x7000:
-		registerIndex := (op & 0x0F00) >> 0x2
+		registerIndex := (op & 0x0F00) >> 8
 		val := byte(op & 0x00FF)
 		sys.registers[registerIndex] += val
 
@@ -188,8 +188,8 @@ func (sys *System) parseInstruction() error {
 
 	// Operation between two registers
 	case 0x8000:
-		registerA := (op & 0x0F00) >> 0x2
-		registerB := (op & 0x00F0) >> 0x1
+		registerA := (op & 0x0F00) >> 8
+		registerB := (op & 0x00F0) >> 4
 
 		switch op & 0x000F {
 			// OR
@@ -284,8 +284,8 @@ func (sys *System) parseInstruction() error {
 
 	// SNE
 	case 0x9000:
-		registerA := (op & 0x0F00) >> 0x2
-		registerB := (op & 0x00F0) >> 0x1
+		registerA := (op & 0x0F00) >> 8
+		registerB := (op & 0x00F0) >> 4
 
 		if sys.registers[registerA] != sys.registers[registerB] {
 			sys.incrementPC(true)
@@ -308,7 +308,7 @@ func (sys *System) parseInstruction() error {
 
 	// RND
 	case 0xC000:
-		registerIndex := (op & 0x0F00) >> 0x2
+		registerIndex := (op & 0x0F00) >> 8
 		val := byte(op & 0x00FF)
 		sys.registers[registerIndex] = val & byte(rand.Intn(256))
 
@@ -336,7 +336,7 @@ func (sys *System) parseInstruction() error {
 		switch op & 0x00FF {
 		// LD - Load delay timer value into vx
 		case 0x0007:
-			registerIndex := (op & 0x0F00) >> 0x2
+			registerIndex := (op & 0x0F00) >> 8
 			sys.registers[registerIndex] = sys.delayTimer
 
 			sys.incrementPC(false)
@@ -348,7 +348,7 @@ func (sys *System) parseInstruction() error {
 
 		// LD - Set delay timer
 		case 0x0015:
-			registerIndex := (op & 0x0F00) >> 0x2
+			registerIndex := (op & 0x0F00) >> 8
 			sys.delayTimer = sys.registers[registerIndex]
 
 			sys.incrementPC(false)
@@ -356,7 +356,7 @@ func (sys *System) parseInstruction() error {
 
 		// LD - Set sound timer
 		case 0x0018:
-			registerIndex := (op & 0x0F00) >> 0x2
+			registerIndex := (op & 0x0F00) >> 8
 			sys.soundTimer = sys.registers[registerIndex]
 
 			sys.incrementPC(false)
@@ -364,7 +364,7 @@ func (sys *System) parseInstruction() error {
 
 		// ADD - I and Vx
 		case 0x001E:
-			registerIndex := (op & 0x0F00) >> 0x2
+			registerIndex := (op & 0x0F00) >> 8
 			sys.iregister += registerIndex
 
 			sys.incrementPC(false)
@@ -376,7 +376,7 @@ func (sys *System) parseInstruction() error {
 
 		// LD - Store BCD representation in to I, I+1, I+2
 		case 0x0033:
-			registerIndex := (op & 0x0F00) >> 0x2
+			registerIndex := (op & 0x0F00) >> 8
 			val := sys.registers[registerIndex]
 
 			hundred := (val / 100) * 100
@@ -394,7 +394,7 @@ func (sys *System) parseInstruction() error {
 
 		// LD - store registers in memory
 		case 0x0055:
-			limit := (op & 0x0F00) >> 0x2
+			limit := (op & 0x0F00) >> 8
 
 			for i := uint16(0); i <= limit; i++ {
 				sys.memory[sys.iregister + i] = sys.registers[i]
@@ -405,7 +405,7 @@ func (sys *System) parseInstruction() error {
 
 		// LD - load register from memory
 		case 0x0065:
-			limit := (op & 0x0F00) >> 0x2
+			limit := (op & 0x0F00) >> 8
 
 			for i := uint16(0); i <= limit; i++ {
 				sys.registers[i] = sys.memory[sys.iregister + i]
