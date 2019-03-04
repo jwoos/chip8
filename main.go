@@ -10,7 +10,8 @@ import (
 
 func main() {
 	sys := newSystem()
-	sys.loadROMFile("IBM Logo.ch8")
+	sys.loadFont()
+	sys.loadROMFile("test-bin.ch8")
 	for _, x := range sys.memory[0x200:] {
 		fmt.Printf("%X ", x)
 	}

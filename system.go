@@ -10,6 +10,15 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+const (
+	MEMORY_SIZE = 4096
+	REGISTER_COUNT = 16
+	STACK_SIZE = 16
+	PC_START = 0x200
+	DISPLAY_WIDTH = 64
+	DISPLAY_HEIGHT = 32
+)
+
 
 /* Memory map
  * +---------------+= 0xFFF (4095) End of Chip-8 RAM
@@ -53,15 +62,22 @@ type System struct {
 	stack *Stack
 
 	opcode uint16
+
+	display [][]bool
 }
 
 
 func newSystem() *System {
 	sys := new(System)
-	sys.memory = make([]byte, 4096)
-	sys.registers = make([]byte, 16)
-	sys.stack = newStack(16)
-	sys.programCounter = 0x200
+	sys.memory = make([]byte, MEMORY_SIZE)
+	sys.registers = make([]byte, REGISTER_COUNT)
+	sys.stack = newStack(STACK_SIZE)
+	sys.programCounter = PC_START
+
+	sys.display = make([][]bool, DISPLAY_HEIGHT)
+	for i := 0; i < len(sys.display); i++ {
+		sys.display[i] = make([]bool, DISPLAY_WIDTH)
+	}
 
 	return sys
 }
@@ -72,6 +88,33 @@ func (sys *System) incrementPC(skip bool) {
 	} else {
 		sys.programCounter += 4
 	}
+}
+
+func (sys *System) loadFont() error {
+	fonts := []byte{
+		0xF0, 0x90, 0x90, 0x90, 0xF0,
+		0x20, 0x60, 0x20, 0x20, 0x70,
+		0xF0, 0x10, 0xF0, 0x80, 0xF0,
+		0xF0, 0x10, 0xF0, 0x10, 0xF0,
+		0x90, 0x90, 0xF0, 0x10, 0x10,
+		0xF0, 0x80, 0xF0, 0x10, 0xF0,
+		0xF0, 0x80, 0xF0, 0x90, 0xF0,
+		0xF0, 0x10, 0x20, 0x40, 0x40,
+		0xF0, 0x90, 0xF0, 0x90, 0xF0,
+		0xF0, 0x90, 0xF0, 0x10, 0xF0,
+		0xF0, 0x90, 0xF0, 0x90, 0x90,
+		0xE0, 0x90, 0xE0, 0x90, 0xE0,
+		0xF0, 0x80, 0x80, 0x80, 0xF0,
+		0xE0, 0x90, 0x90, 0x90, 0xE0,
+		0xF0, 0x80, 0xF0, 0x80, 0xF0,
+		0xF0, 0x80, 0xF0, 0x80, 0x80,
+	}
+
+	for i, x := range fonts {
+		sys.memory[i] = x
+	}
+
+	return nil
 }
 
 func (sys *System) loadROMFile(path string) error {
@@ -87,7 +130,15 @@ func (sys *System) loadROMFile(path string) error {
 
 func (sys *System) loadROM(data []byte) {
 	for i, b := range data {
-		sys.memory[0x200 + i] = b
+		sys.memory[PC_START + i] = b
+	}
+}
+
+func (sys *System) clearDisplay() {
+	for i := 0; i < len(sys.display); i++ {
+		for j := 0; j < len(sys.display[i]); j++ {
+			sys.display[i][j] = false
+		}
 	}
 }
 
@@ -99,6 +150,7 @@ func (sys *System) parseInstruction() error {
 		switch op {
 		// CLS - Clear display
 		case 0x00E0:
+			sys.clearDisplay()
 			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 			err := termbox.Flush()
 			if err != nil {
@@ -317,7 +369,38 @@ func (sys *System) parseInstruction() error {
 
 	// DRW
 	case 0xD000:
-		// TODO
+		toRead := op & 0x000F
+		x := (op & 0x0F00) >> 8
+		y := (op & 0x00F0) >> 4
+
+		for i := uint16(0); i < toRead; i++ {
+			toDraw := sys.memory[sys.iregister + i]
+			toDrawBits, err := bits(toDraw)
+			if err != nil {
+				return err
+			}
+
+			cells := termbox.CellBuffer()
+
+			for j := uint16(0); j < uint16(len(toDrawBits)); j++ {
+				prev := sys.display[y + i][x + j]
+				sys.display[y + i][x + j] = sys.display[y + i][x + j] != toDrawBits[j]
+
+				if (prev == true) && (sys.display[y + i][x + j] != true) {
+					sys.registers[0xF] = 1
+				}
+
+				if sys.display[y + i][x + j] {
+					cells[(DISPLAY_WIDTH * (y + i)) + (x + j)].Ch = '█'
+				} else {
+					cells[(DISPLAY_WIDTH * (y + i)) + (x + j)].Ch = ' '
+				}
+			}
+		}
+
+		termbox.Flush()
+		sys.incrementPC(false)
+		break
 
 	case 0xE000:
 
