@@ -22,8 +22,15 @@ func main() {
 	termbox.HideCursor()
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
+	/*
+	 *for i, ch := range "Press esc to quit" {
+	 *    termbox.SetCell(i, 0, ch, termbox.ColorDefault, termbox.ColorDefault)
+	 *}
+	 */
+
+	buffer := termbox.CellBuffer()
 	for i, ch := range "Press esc to quit" {
-		termbox.SetCell(i, 0, ch, termbox.ColorDefault, termbox.ColorDefault)
+		buffer[i].Ch = ch
 	}
 	termbox.Flush()
 
