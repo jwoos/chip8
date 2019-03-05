@@ -30,7 +30,7 @@ func (stack *Stack) push(item uint16) error {
 }
 
 
-func (stack *Stack) pop(item uint16) (uint16, error) {
+func (stack *Stack) pop() (uint16, error) {
 	if stack.index == 0 {
 		return 0, errors.New("Stack is empty")
 	}

@@ -10,9 +10,10 @@ import (
 
 
 func main() {
-	sys := newSystem()
+	sys := newSystem(500, false)
 	sys.loadFont()
-	sys.loadROMFile("test-bin.ch8")
+	sys.loadROMFile("IBM Logo.ch8")
+	sys.timers()
 
 	err := termbox.Init()
 	if err != nil {
@@ -21,13 +22,16 @@ func main() {
 	termbox.HideCursor()
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-	for range time.Tick(time.Duration(1000 / 60) * time.Millisecond) {
+	for range time.Tick(time.Duration(1000 / sys.clockspeed) * time.Millisecond) {
 		sys.readInstruction()
-		err := sys.parseInstruction()
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
+		sys.parseInstruction()
+		//fmt.Printf("0x%X\n", sys.opcode)
+		/*
+		 *if err != nil {
+		 *    fmt.Println(err)
+		 *    break
+		 *}
+		 */
 
 		if sys.halt {
 			break

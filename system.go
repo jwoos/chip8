@@ -2,10 +2,10 @@ package main
 
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"time"
 
 	"github.com/nsf/termbox-go"
 )
@@ -66,15 +66,21 @@ type System struct {
 	display [][]bool
 
 	halt bool
+
+	// Hz
+	clockspeed uint64
+
+	debug bool
 }
 
 
-func newSystem() *System {
+func newSystem(clockspeed time.Duration, debug bool) *System {
 	sys := new(System)
 	sys.memory = make([]byte, MEMORY_SIZE)
 	sys.registers = make([]byte, REGISTER_COUNT)
 	sys.stack = newStack(STACK_SIZE)
 	sys.programCounter = PC_START
+	sys.clockspeed = clockspeed
 
 	sys.display = make([][]bool, DISPLAY_HEIGHT)
 	for i := 0; i < len(sys.display); i++ {
@@ -90,6 +96,21 @@ func (sys *System) incrementPC(skip bool) {
 	} else {
 		sys.programCounter += 4
 	}
+}
+
+// run in a goroutine
+func (sys *System) timers() {
+	go func() {
+		for range time.Tick(time.Duration(1000 / 60) * time.Millisecond) {
+			if sys.soundTimer > 0 {
+				sys.soundTimer--
+			}
+
+			if sys.delayTimer > 0 {
+				sys.delayTimer--
+			}
+		}
+	}()
 }
 
 func (sys *System) loadFont() error {
@@ -168,6 +189,12 @@ func (sys *System) parseInstruction() error {
 
 		// RET - return from subroutine
 		case 0x00EE:
+			item, err := sys.stack.pop()
+			if err != nil {
+				return err
+			}
+			sys.programCounter = item
+			break
 
 		// exit
 		case 0x0A00:
@@ -178,8 +205,10 @@ func (sys *System) parseInstruction() error {
 			break
 
 		// SYS - jump to machine code routine at address
+
 		default:
-			break
+			sys.incrementPC(false)
+			return fmt.Errorf("Invalid operation 0x%X", op)
 		}
 
 		break
@@ -345,6 +374,10 @@ func (sys *System) parseInstruction() error {
 
 				sys.incrementPC(false)
 				break
+
+			default:
+				sys.incrementPC(false)
+				return fmt.Errorf("Invalid operation 0x%X", op)
 		}
 		break
 
@@ -428,6 +461,9 @@ func (sys *System) parseInstruction() error {
 		case 0x00A1:
 			// TODO
 
+		default:
+			sys.incrementPC(false)
+			return fmt.Errorf("Invalid operation 0x%X", op)
 		}
 
 	case 0xF000:
@@ -511,11 +547,16 @@ func (sys *System) parseInstruction() error {
 
 			sys.incrementPC(false)
 			break
+
+		default:
+			sys.incrementPC(false)
+			return fmt.Errorf("Invalid operation 0x%X", op)
 		}
 		break
 
 	default:
-		return errors.New(fmt.Sprintf("Invalid operation: %x", op))
+		sys.incrementPC(false)
+		return fmt.Errorf("Invalid operation 0x%X", op)
 	}
 
 	return nil
