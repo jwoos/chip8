@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/nsf/termbox-go"
 )
@@ -12,9 +13,6 @@ func main() {
 	sys := newSystem()
 	sys.loadFont()
 	sys.loadROMFile("test-bin.ch8")
-	for _, x := range sys.memory[0x200:] {
-		fmt.Printf("%X ", x)
-	}
 
 	err := termbox.Init()
 	if err != nil {
@@ -23,16 +21,24 @@ func main() {
 	termbox.HideCursor()
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-	/*
-	 *for i, ch := range "Press esc to quit" {
-	 *    termbox.SetCell(i, 0, ch, termbox.ColorDefault, termbox.ColorDefault)
-	 *}
-	 */
-
-	for i := 0; i < 2; i++ {
+	for range time.Tick(time.Duration(1000 / 60) * time.Millisecond) {
 		sys.readInstruction()
-		sys.parseInstruction()
+		err := sys.parseInstruction()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		if sys.halt {
+			break
+		}
 	}
+
+	for i, ch := range "Press esc to quit" {
+		termbox.SetCell(i, 0, ch, termbox.ColorDefault, termbox.ColorDefault)
+	}
+	termbox.Flush()
+
 	for {
 		ev := termbox.PollEvent()
 		if ev.Type == termbox.EventKey && ev.Key == termbox.KeyEsc {

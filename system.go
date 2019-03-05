@@ -64,6 +64,8 @@ type System struct {
 	opcode uint16
 
 	display [][]bool
+
+	halt bool
 }
 
 
@@ -167,9 +169,17 @@ func (sys *System) parseInstruction() error {
 		// RET - return from subroutine
 		case 0x00EE:
 
+		// exit
+		case 0x0A00:
+			fallthrough
+		case 0x0000:
+			sys.halt = true
+			sys.incrementPC(false)
+			break
+
 		// SYS - jump to machine code routine at address
 		default:
-
+			break
 		}
 
 		break
