@@ -19,6 +19,25 @@ const (
 	DISPLAY_HEIGHT = 32
 )
 
+var INPUT_MAP = map[rune]byte{
+	'1': 0x1,
+	'2': 0x2,
+	'3': 0x3,
+	'4': 0xC,
+	'q': 0x4,
+	'w': 0x5,
+	'e': 0x6,
+	'r': 0xD,
+	'a': 0x7,
+	's': 0x8,
+	'd': 0x9,
+	'f': 0xE,
+	'z': 0xA,
+	'x': 0x0,
+	'c': 0xB,
+	'v': 0xF,
+}
+
 
 /* Memory map
  * +---------------+= 0xFFF (4095) End of Chip-8 RAM
@@ -419,6 +438,7 @@ func (sys *System) parseInstruction() error {
 		toRead := op & 0x000F
 		x := (op & 0x0F00) >> 8
 		y := (op & 0x00F0) >> 4
+		sys.registers[0xF] = 0
 
 		for i := uint16(0); i < toRead; i++ {
 			toDraw := sys.memory[sys.iregister + i]
@@ -456,10 +476,12 @@ func (sys *System) parseInstruction() error {
 		// SKP
 		case 0x009E:
 			// TODO
+			panic("Instruction not implemented 0xEx9E")
 
 		// SKNP
 		case 0x00A1:
 			// TODO
+			panic("Instruction not implemented 0xExA1")
 
 		default:
 			sys.incrementPC(false)
@@ -478,7 +500,21 @@ func (sys *System) parseInstruction() error {
 
 		// LD - load from input
 		case 0x000A:
-			// TODO
+			registerIndex := (op & 0x0F00) >> 8
+			ev := termbox.PollEvent()
+			for {
+				if ev.Type == termbox.EventKey {
+					val, ok := INPUT_MAP[ev.Ch]
+
+					if ok {
+						sys.registers[registerIndex] = val
+						break
+					}
+				}
+			}
+
+			sys.incrementPC(false)
+			break
 
 		// LD - Set delay timer
 		case 0x0015:
@@ -506,7 +542,11 @@ func (sys *System) parseInstruction() error {
 
 		// LD - Set I to the value of the location of the sprite
 		case 0x0029:
-			// TODO
+			registerIndex := (op & 0x0F00) >> 8
+			sys.iregister = uint16(sys.registers[registerIndex] * 5)
+
+			sys.incrementPC(false)
+			break
 
 		// LD - Store BCD representation in to I, I+1, I+2
 		case 0x0033:
