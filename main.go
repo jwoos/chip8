@@ -3,16 +3,32 @@ package main
 
 import (
 	"fmt"
+	"flag"
 	"time"
+	"os"
 
 	"github.com/nsf/termbox-go"
 )
 
 
 func main() {
-	sys := newSystem(500, false)
+	var clockspeed uint64
+	var debug bool
+	var rom string
+
+	flag.Uint64Var(&clockspeed, "clockspeed", 500, "Clockspeed in Hz")
+	flag.BoolVar(&debug, "debug", false, "Debug mode")
+	flag.StringVar(&rom, "rom", "", "ROM to run")
+	flag.Parse()
+
+	if rom == "" {
+		fmt.Println("Please supply a ROM")
+		os.Exit(1)
+	}
+
+	sys := newSystem(clockspeed, debug)
 	sys.loadFont()
-	sys.loadROMFile("IBM Logo.ch8")
+	sys.loadROMFile(rom)
 	sys.timers()
 
 	err := termbox.Init()

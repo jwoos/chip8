@@ -74,7 +74,7 @@ type System struct {
 }
 
 
-func newSystem(clockspeed time.Duration, debug bool) *System {
+func newSystem(clockspeed uint64, debug bool) *System {
 	sys := new(System)
 	sys.memory = make([]byte, MEMORY_SIZE)
 	sys.registers = make([]byte, REGISTER_COUNT)
