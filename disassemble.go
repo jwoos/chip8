@@ -95,7 +95,7 @@ func describeOp(op uint16) string {
 
 			// SHR
 			case 0x6:
-				return fmt.Sprintf("[SHR] - registers[0x%X] /= 2, {registers[0x%X] /= 2} and set registers[0xF] if odd", x, y)
+				return fmt.Sprintf("[SHR] - registers[0x%X] /= 2 and set registers[0xF] if odd", x, y)
 
 			// SUBN
 			case 0x7:
