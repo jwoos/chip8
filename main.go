@@ -13,11 +13,13 @@ import (
 
 func main() {
 	var clockspeed uint64
+	var disassemble bool
 	var debug bool
 	var rom string
 
 	flag.Uint64Var(&clockspeed, "clockspeed", 500, "Clockspeed in Hz")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
+	flag.BoolVar(&disassemble, "disassemble", false, "Disassemble ROM")
 	flag.StringVar(&rom, "rom", "", "ROM to run")
 	flag.Parse()
 
@@ -29,6 +31,12 @@ func main() {
 	sys := newSystem(clockspeed, debug)
 	sys.loadFont()
 	sys.loadROMFile(rom)
+
+	if disassemble {
+		sys.disassemble()
+		return
+	}
+
 	sys.timers()
 
 	err := termbox.Init()
