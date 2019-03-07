@@ -22,6 +22,12 @@ type Instruction struct {
 func (sys *System) parseInstruction() error {
 	op := sys.opcode
 
+	x := (op & 0x0F00) >> 8
+	y := (op & 0x00F0) >> 4
+	n := op & 0x000F
+	nnn := op & 0x0FFF
+	kk := byte(op & 0x00FF)
+
 	switch op & 0xF000 {
 	case 0x0000:
 		switch op {
@@ -65,7 +71,7 @@ func (sys *System) parseInstruction() error {
 
 	// JMP - jump to address
 	case 0x1000:
-		sys.programCounter = op & 0x0FFF
+		sys.programCounter = nnn
 
 		sys.incrementPC(false)
 		break
@@ -74,16 +80,14 @@ func (sys *System) parseInstruction() error {
 	case 0x2000:
 		// FIXME handle error
 		sys.stack.push(sys.programCounter)
-		sys.programCounter = op & 0x0FFF
+		sys.programCounter = nnn
 
 		sys.incrementPC(false)
 		break
 
 	// SE - Skip next instruction if Vx == val
 	case 0x3000:
-		registerIndex := (op & 0x0F00) >> 8
-		lastHalf := byte(op & 0x00FF)
-		if sys.registers[registerIndex] == lastHalf {
+		if sys.registers[x] == kk {
 			sys.incrementPC(true)
 		} else {
 			sys.incrementPC(false)
@@ -92,9 +96,7 @@ func (sys *System) parseInstruction() error {
 
 	// SNE - skip next instruction if Vx != val
 	case 0x4000:
-		registerIndex := (op & 0x0F00) >> 8
-		lastHalf := byte(op & 0x00FF)
-		if sys.registers[registerIndex] == lastHalf {
+		if sys.registers[x] == kk {
 			sys.incrementPC(false)
 		} else {
 			sys.incrementPC(true)
@@ -103,10 +105,7 @@ func (sys *System) parseInstruction() error {
 
 	// SE - skip if Vx == Vy
 	case 0x5000:
-		registerA := (op & 0x0F00) >> 8
-		registerB := (op & 0x00F0) >> 4
-
-		if sys.registers[registerA] == sys.registers[registerB] {
+		if sys.registers[x] == sys.registers[y] {
 			sys.incrementPC(true)
 		} else {
 			sys.incrementPC(false)
@@ -115,112 +114,103 @@ func (sys *System) parseInstruction() error {
 
 	// LD - sets register
 	case 0x6000:
-		registerIndex := (op & 0x0F00) >> 8
-		val := byte(op & 0x00FF)
-		sys.registers[registerIndex] = val
+		sys.registers[x] = kk
 
 		sys.incrementPC(false)
 		break
 
 	// ADD - Vx = Vx + val
 	case 0x7000:
-		registerIndex := (op & 0x0F00) >> 8
-		val := byte(op & 0x00FF)
-		sys.registers[registerIndex] += val
+		sys.registers[x] += kk
 
 		sys.incrementPC(false)
 		break
 
 	// Operation between two registers
 	case 0x8000:
-		registerA := (op & 0x0F00) >> 8
-		registerB := (op & 0x00F0) >> 4
-
 		switch op & 0x000F {
 			// OR
 			case 0x1:
-				sys.registers[registerA] |= sys.registers[registerB]
+				sys.registers[x] |= sys.registers[y]
 
 				sys.incrementPC(false)
 				break
 
 			// AND
 			case 0x2:
-				sys.registers[registerA] &= sys.registers[registerB]
+				sys.registers[x] &= sys.registers[y]
 
 				sys.incrementPC(false)
 				break
 
 			// XOR
 			case 0x3:
-				sys.registers[registerA] ^= sys.registers[registerB]
+				sys.registers[x] ^= sys.registers[y]
 
 				sys.incrementPC(false)
 				break
 
 			// ADD
 			case 0x4:
-				sum := sys.registers[registerA] + sys.registers[registerB]
-
-				if (sum > sys.registers[registerA]) == (sys.registers[registerB] > 0) {
-					sys.registers[registerA] = sum
+				sum := sys.registers[x] + sys.registers[y]
+				if (sum > sys.registers[x]) == (sys.registers[y] > 0) {
 					sys.registers[0xF] = 0
 				} else {
-					sys.registers[registerA] = sum
 					sys.registers[0xF] = 1
 				}
+				sys.registers[x] = sum
 
 				sys.incrementPC(false)
 				break
 
 			// SUB
 			case 0x5:
-				if (sys.registers[registerA] > sys.registers[registerB]) {
+				if (sys.registers[x] > sys.registers[y]) {
 					sys.registers[0xF] = 1
 				} else {
 					sys.registers[0xF] = 0
 				}
 
-				sys.registers[registerA] -= sys.registers[registerB]
+				sys.registers[x] -= sys.registers[y]
 
 				sys.incrementPC(false)
 				break
 
 			// SHR
 			case 0x6:
-				if (sys.registers[registerA] & 0x1) == 1 {
+				if (sys.registers[x] & 0x1) == 1 {
 					sys.registers[0xF] = 1
 				} else {
 					sys.registers[0xF] = 0
 				}
 
-				sys.registers[registerA] /= 2
+				sys.registers[x] >>= 1
 
 				sys.incrementPC(false)
 				break
 
 			// SUBN
 			case 0x7:
-				if (sys.registers[registerB] > sys.registers[registerA]) {
+				if (sys.registers[y] > sys.registers[x]) {
 					sys.registers[0xF] = 1
 				} else {
 					sys.registers[0xF] = 0
 				}
 
-				sys.registers[registerA] = sys.registers[registerB] - sys.registers[registerA]
+				sys.registers[x] = sys.registers[y] - sys.registers[x]
 
 				sys.incrementPC(false)
 				break
 
 			// SHL
 			case 0xE:
-				if (sys.registers[registerA] & 0x1) == 1 {
+				if (sys.registers[x] & 0x1) == 1 {
 					sys.registers[0xF] = 1
 				} else {
 					sys.registers[0xF] = 0
 				}
 
-				sys.registers[registerA] *= 2
+				sys.registers[x] <<= 1
 
 				sys.incrementPC(false)
 				break
@@ -233,10 +223,7 @@ func (sys *System) parseInstruction() error {
 
 	// SNE
 	case 0x9000:
-		registerA := (op & 0x0F00) >> 8
-		registerB := (op & 0x00F0) >> 4
-
-		if sys.registers[registerA] != sys.registers[registerB] {
+		if sys.registers[x] != sys.registers[y] {
 			sys.incrementPC(true)
 		} else {
 			sys.incrementPC(false)
@@ -245,33 +232,28 @@ func (sys *System) parseInstruction() error {
 
 	// LD
 	case 0xA000:
-		sys.iregister = op & 0x0FFF
+		sys.iregister = nnn
 
 		sys.incrementPC(false)
 		break
 
 	// JMP
 	case 0xB000:
-		sys.programCounter = (op & 0x0FFF) + uint16(sys.registers[0x0])
+		sys.programCounter = nnn + uint16(sys.registers[0x0])
 		break
 
 	// RND
 	case 0xC000:
-		registerIndex := (op & 0x0F00) >> 8
-		val := byte(op & 0x00FF)
-		sys.registers[registerIndex] = val & byte(rand.Intn(256))
+		sys.registers[x] = kk & byte(rand.Intn(256))
 
 		sys.incrementPC(false)
 		break
 
 	// DRW
 	case 0xD000:
-		toRead := op & 0x000F
-		x := (op & 0x0F00) >> 8
-		y := (op & 0x00F0) >> 4
 		sys.registers[0xF] = 0
 
-		for i := uint16(0); i < toRead; i++ {
+		for i := uint16(0); i < n; i++ {
 			toDraw := sys.memory[sys.iregister + i]
 			toDrawBits, err := bits(toDraw)
 			if err != nil {
@@ -323,22 +305,20 @@ func (sys *System) parseInstruction() error {
 		switch op & 0x00FF {
 		// LD - Load delay timer value into vx
 		case 0x0007:
-			registerIndex := (op & 0x0F00) >> 8
-			sys.registers[registerIndex] = sys.delayTimer
+			sys.registers[x] = sys.delayTimer
 
 			sys.incrementPC(false)
 			break
 
 		// LD - load from input
 		case 0x000A:
-			registerIndex := (op & 0x0F00) >> 8
 			ev := termbox.PollEvent()
 			for {
 				if ev.Type == termbox.EventKey {
 					val, ok := INPUT_MAP[ev.Ch]
 
 					if ok {
-						sys.registers[registerIndex] = val
+						sys.registers[x] = val
 						break
 					}
 				}
@@ -349,40 +329,35 @@ func (sys *System) parseInstruction() error {
 
 		// LD - Set delay timer
 		case 0x0015:
-			registerIndex := (op & 0x0F00) >> 8
-			sys.delayTimer = sys.registers[registerIndex]
+			sys.delayTimer = sys.registers[x]
 
 			sys.incrementPC(false)
 			break
 
 		// LD - Set sound timer
 		case 0x0018:
-			registerIndex := (op & 0x0F00) >> 8
-			sys.soundTimer = sys.registers[registerIndex]
+			sys.soundTimer = sys.registers[x]
 
 			sys.incrementPC(false)
 			break
 
 		// ADD - I and Vx
 		case 0x001E:
-			registerIndex := (op & 0x0F00) >> 8
-			sys.iregister += registerIndex
+			sys.iregister += x
 
 			sys.incrementPC(false)
 			break
 
 		// LD - Set I to the value of the location of the sprite
 		case 0x0029:
-			registerIndex := (op & 0x0F00) >> 8
-			sys.iregister = uint16(sys.registers[registerIndex] * 5)
+			sys.iregister = uint16(sys.registers[x] * 5)
 
 			sys.incrementPC(false)
 			break
 
 		// LD - Store BCD representation in to I, I+1, I+2
 		case 0x0033:
-			registerIndex := (op & 0x0F00) >> 8
-			val := sys.registers[registerIndex]
+			val := sys.registers[x]
 
 			hundred := (val / 100) * 100
 			val -= hundred
@@ -399,9 +374,7 @@ func (sys *System) parseInstruction() error {
 
 		// LD - store registers in memory
 		case 0x0055:
-			limit := (op & 0x0F00) >> 8
-
-			for i := uint16(0); i <= limit; i++ {
+			for i := uint16(0); i <= x; i++ {
 				sys.memory[sys.iregister + i] = sys.registers[i]
 			}
 
@@ -410,9 +383,7 @@ func (sys *System) parseInstruction() error {
 
 		// LD - load register from memory
 		case 0x0065:
-			limit := (op & 0x0F00) >> 8
-
-			for i := uint16(0); i <= limit; i++ {
+			for i := uint16(0); i <= x; i++ {
 				sys.registers[i] = sys.memory[sys.iregister + i]
 			}
 
