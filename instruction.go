@@ -45,11 +45,11 @@ func (sys *System) parseInstruction() error {
 
 		// RET - return from subroutine
 		case 0x00EE:
-			item, err := sys.stack.pop()
+			addr, err := sys.stack.pop()
 			if err != nil {
 				return err
 			}
-			sys.programCounter = item
+			sys.programCounter = addr
 			break
 
 		// exit
@@ -62,6 +62,7 @@ func (sys *System) parseInstruction() error {
 			break
 
 		// SYS - jump to machine code routine at address
+		// will not implement
 
 		default:
 			sys.incrementPC(false)
@@ -215,8 +216,7 @@ func (sys *System) parseInstruction() error {
 				break
 
 			default:
-				sys.incrementPC(false)
-				return fmt.Errorf("Invalid operation 0x%X", op)
+				return fmt.Errorf("Invalid operation 0x%04X", op)
 		}
 		break
 
@@ -296,8 +296,7 @@ func (sys *System) parseInstruction() error {
 			panic("Instruction not implemented 0xExA1")
 
 		default:
-			sys.incrementPC(false)
-			return fmt.Errorf("Invalid operation 0x%X", op)
+			return fmt.Errorf("Invalid operation 0x%04X", op)
 		}
 
 	case 0xF000:
@@ -390,14 +389,12 @@ func (sys *System) parseInstruction() error {
 			break
 
 		default:
-			sys.incrementPC(false)
-			return fmt.Errorf("Invalid operation 0x%X", op)
+			return fmt.Errorf("Invalid operation 0x%04X", op)
 		}
 		break
 
 	default:
-		sys.incrementPC(false)
-		return fmt.Errorf("Invalid operation 0x%X", op)
+		return fmt.Errorf("Invalid operation 0x%04X", op)
 	}
 
 	return nil

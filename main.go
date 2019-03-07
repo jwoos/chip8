@@ -54,7 +54,11 @@ clockLoop:
 			break clockLoop
 		default:
 			sys.readInstruction()
-			sys.parseInstruction()
+			err := sys.parseInstruction()
+			if err != nil {
+				fmt.Println(err)
+				break clockLoop
+			}
 		}
 	}
 
