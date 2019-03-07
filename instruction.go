@@ -56,7 +56,8 @@ func (sys *System) parseInstruction() error {
 		case 0x0A00:
 			fallthrough
 		case 0x0000:
-			sys.halt = true
+			sys.halt <- true
+
 			sys.incrementPC(false)
 			break
 
@@ -72,8 +73,6 @@ func (sys *System) parseInstruction() error {
 	// JMP - jump to address
 	case 0x1000:
 		sys.programCounter = nnn
-
-		sys.incrementPC(false)
 		break
 
 	// CALL - call subroutine

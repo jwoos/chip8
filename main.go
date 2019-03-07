@@ -37,8 +37,6 @@ func main() {
 		return
 	}
 
-	sys.timers()
-
 	err := termbox.Init()
 	if err != nil {
 		fmt.Printf("Error initializing termbox: %v\n", err)
@@ -46,19 +44,17 @@ func main() {
 	termbox.HideCursor()
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-	for range time.Tick(time.Duration(1000 / sys.clockspeed) * time.Millisecond) {
-		sys.readInstruction()
-		sys.parseInstruction()
-		//fmt.Printf("0x%X\n", sys.opcode)
-		/*
-		 *if err != nil {
-		 *    fmt.Println(err)
-		 *    break
-		 *}
-		 */
+	sys.keyEvents()
+	sys.timers()
 
-		if sys.halt {
-			break
+clockLoop:
+	for range time.Tick(time.Duration(1000 / sys.clockspeed) * time.Millisecond) {
+		select {
+		case <-sys.halt:
+			break clockLoop
+		default:
+			sys.readInstruction()
+			sys.parseInstruction()
 		}
 	}
 

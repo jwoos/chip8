@@ -4,6 +4,8 @@ package main
 import (
 	"io/ioutil"
 	"time"
+
+	"github.com/nsf/termbox-go"
 )
 
 const (
@@ -80,7 +82,7 @@ type System struct {
 
 	display [][]bool
 
-	halt bool
+	halt chan bool
 
 	// Hz
 	clockspeed uint64
@@ -96,6 +98,8 @@ func newSystem(clockspeed uint64, debug bool) *System {
 	sys.stack = newStack(STACK_SIZE)
 	sys.programCounter = PC_START
 	sys.clockspeed = clockspeed
+
+	sys.halt = make(chan bool, 1)
 
 	sys.display = make([][]bool, DISPLAY_HEIGHT)
 	for i := 0; i < len(sys.display); i++ {
@@ -126,6 +130,25 @@ func (sys *System) timers() {
 			}
 		}
 	}()
+}
+
+func (sys *System) keyEvents() {
+	go func() {
+		for {
+			ev := termbox.PollEvent()
+			if ev.Type == termbox.EventKey && ev.Key == termbox.KeyCtrlC {
+				sys.halt <- true
+				return
+			}
+		}
+	}()
+}
+
+func (sys *System) write(val string) {
+	for i, ch := range val {
+		termbox.SetCell(i, 0, ch, termbox.ColorDefault, termbox.ColorDefault)
+	}
+	termbox.Flush()
 }
 
 func (sys *System) loadFont() error {
