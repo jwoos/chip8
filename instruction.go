@@ -50,6 +50,8 @@ func (sys *System) parseInstruction() error {
 				return err
 			}
 			sys.programCounter = addr
+
+			sys.incrementPC(false)
 			break
 
 		// exit
@@ -77,7 +79,6 @@ func (sys *System) parseInstruction() error {
 
 	// CALL - call subroutine
 	case 0x2000:
-		fmt.Println(sys.stack.memory)
 		err := sys.stack.push(sys.programCounter)
 		if err != nil {
 			return err
@@ -268,6 +269,7 @@ func (sys *System) parseInstruction() error {
 				yAdjusted %= DISPLAY_HEIGHT
 			}
 
+			//fmt.Println(sys.iregister, yOffset)
 			toDraw := sys.memory[sys.iregister + yOffset]
 			toDrawBits, err := bits(toDraw)
 			if err != nil {
@@ -363,7 +365,7 @@ func (sys *System) parseInstruction() error {
 
 		// ADD - I and Vx
 		case 0x001E:
-			sys.iregister += x
+			sys.iregister += uint16(sys.registers[x])
 
 			sys.incrementPC(false)
 			break

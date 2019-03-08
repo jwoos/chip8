@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 )
 
 type Stack struct {
@@ -14,6 +15,7 @@ type Stack struct {
 func newStack(size uint) *Stack {
 	stack := new(Stack)
 	stack.memory = make([]uint16, size)
+	stack.capacity = size
 	return stack
 }
 
@@ -54,4 +56,8 @@ func (stack *Stack) peek() (uint16, error) {
 
 func (stack *Stack) size() uint {
 	return uint(len(stack.memory))
+}
+
+func (stack *Stack) String() string {
+	return fmt.Sprintf("%04X", stack.memory)
 }
