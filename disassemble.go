@@ -73,6 +73,9 @@ func describeOp(op uint16) string {
 	// Operation between two registers
 	case 0x8000:
 		switch op & 0x000F {
+			case 0x0:
+				return fmt.Sprintf("[LD] - registers[0x%X] = registers[0x%X]", x, y)
+
 			// OR
 			case 0x1:
 				return fmt.Sprintf("[OR] - registers[0x%X] |= registers[0x%X]", x, y)

@@ -82,7 +82,6 @@ func (sys *System) parseInstruction() error {
 		sys.stack.push(sys.programCounter)
 		sys.programCounter = nnn
 
-		sys.incrementPC(false)
 		break
 
 	// SE - Skip next instruction if Vx == val
@@ -129,6 +128,12 @@ func (sys *System) parseInstruction() error {
 	// Operation between two registers
 	case 0x8000:
 		switch op & 0x000F {
+			case 0x0:
+				sys.registers[x] = sys.registers[y]
+
+				sys.incrementPC(false)
+				break
+
 			// OR
 			case 0x1:
 				sys.registers[x] |= sys.registers[y]

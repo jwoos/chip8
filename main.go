@@ -62,14 +62,14 @@ clockLoop:
 		}
 	}
 
-	for i, ch := range "Press esc to quit" {
+	for i, ch := range "Press any key to quit" {
 		termbox.SetCell(i, 0, ch, termbox.ColorDefault, termbox.ColorDefault)
 	}
 	termbox.Flush()
 
 	for {
 		ev := termbox.PollEvent()
-		if ev.Type == termbox.EventKey && ev.Key == termbox.KeyEsc {
+		if ev.Type == termbox.EventKey {
 			break
 		}
 	}
