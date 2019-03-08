@@ -77,6 +77,7 @@ func (sys *System) parseInstruction() error {
 
 	// CALL - call subroutine
 	case 0x2000:
+		fmt.Println(sys.stack.memory)
 		err := sys.stack.push(sys.programCounter)
 		if err != nil {
 			return err
@@ -301,13 +302,20 @@ func (sys *System) parseInstruction() error {
 		switch op & 0x00FF {
 		// SKP
 		case 0x009E:
-			// TODO
-			panic("Instruction not implemented 0xEx9E")
+			if sys.keys[sys.registers[x]] {
+				sys.incrementPC(true)
+			} else {
+				sys.incrementPC(false)
+			}
+			break
 
 		// SKNP
 		case 0x00A1:
-			// TODO
-			panic("Instruction not implemented 0xExA1")
+			if sys.keys[sys.registers[x]] {
+				sys.incrementPC(false)
+			} else {
+				sys.incrementPC(true)
+			}
 
 		default:
 			return fmt.Errorf("Invalid operation 0x%04X", op)

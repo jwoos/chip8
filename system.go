@@ -12,6 +12,7 @@ const (
 	MEMORY_SIZE = 4096
 	REGISTER_COUNT = 16
 	STACK_SIZE = 16
+	KEY_COUNT = 16
 	PC_START = 0x200
 	DISPLAY_WIDTH = 64
 	DISPLAY_HEIGHT = 32
@@ -82,23 +83,30 @@ type System struct {
 
 	display [][]bool
 
+	keys []bool
+	keyTimers []*time.Timer
 	halt chan bool
 
 	// Hz
 	clockspeed uint64
 
+	keyTimeOut uint
+
 	debug bool
 }
 
 
-func newSystem(clockspeed uint64, debug bool) *System {
+func newSystem(clockspeed uint64, keyTimeOut uint, debug bool) *System {
 	sys := new(System)
 	sys.memory = make([]byte, MEMORY_SIZE)
 	sys.registers = make([]byte, REGISTER_COUNT)
 	sys.stack = newStack(STACK_SIZE)
 	sys.programCounter = PC_START
 	sys.clockspeed = clockspeed
+	sys.keyTimeOut = keyTimeOut
 
+	sys.keyTimers = make([]*time.Timer, KEY_COUNT)
+	sys.keys = make([]bool, KEY_COUNT)
 	sys.halt = make(chan bool, 1)
 
 	sys.display = make([][]bool, DISPLAY_HEIGHT)
@@ -136,9 +144,24 @@ func (sys *System) keyEvents() {
 	go func() {
 		for {
 			ev := termbox.PollEvent()
-			if ev.Type == termbox.EventKey && ev.Key == termbox.KeyCtrlC {
-				sys.halt <- true
-				return
+			if ev.Type == termbox.EventKey {
+				if ev.Key == termbox.KeyCtrlC {
+					sys.halt <- true
+					return
+				}
+
+				mappedKey, ok := INPUT_MAP[ev.Ch]
+				if ok {
+					if sys.keyTimers[mappedKey] != nil {
+						sys.keyTimers[mappedKey].Stop()
+						sys.keyTimers[mappedKey] = nil
+					}
+
+					sys.keys[mappedKey] = true
+					sys.keyTimers[mappedKey] = time.AfterFunc(time.Duration(sys.keyTimeOut) * time.Millisecond, func() {
+						sys.keys[mappedKey] = false
+					})
+				}
 			}
 		}
 	}()

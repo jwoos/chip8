@@ -16,11 +16,13 @@ func main() {
 	var disassemble bool
 	var debug bool
 	var rom string
+	var keyTimeOut uint
 
 	flag.Uint64Var(&clockspeed, "clockspeed", 500, "Clockspeed in Hz")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.BoolVar(&disassemble, "disassemble", false, "Disassemble ROM")
 	flag.StringVar(&rom, "rom", "", "ROM to run")
+	flag.UintVar(&keyTimeOut, "keytimeout", 100, "Key presses are held this amount of milliseconds")
 	flag.Parse()
 
 	if rom == "" {
@@ -28,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	sys := newSystem(clockspeed, debug)
+	sys := newSystem(clockspeed, keyTimeOut, debug)
 	sys.loadFont()
 	sys.loadROMFile(rom)
 
