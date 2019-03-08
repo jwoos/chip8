@@ -56,7 +56,7 @@ clockLoop:
 			sys.readInstruction()
 			err := sys.parseInstruction()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Printf("Error parsing instruction: %v", err)
 				break clockLoop
 			}
 		}

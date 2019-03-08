@@ -65,8 +65,7 @@ func (sys *System) parseInstruction() error {
 		// will not implement
 
 		default:
-			sys.incrementPC(false)
-			return fmt.Errorf("Invalid operation 0x%X", op)
+			return fmt.Errorf("Invalid operation %#04X", op)
 		}
 
 		break
@@ -128,6 +127,7 @@ func (sys *System) parseInstruction() error {
 	// Operation between two registers
 	case 0x8000:
 		switch op & 0x000F {
+			// LD - set register
 			case 0x0:
 				sys.registers[x] = sys.registers[y]
 
@@ -209,7 +209,7 @@ func (sys *System) parseInstruction() error {
 
 			// SHL
 			case 0xE:
-				if (sys.registers[x] & 0x1) == 1 {
+				if (sys.registers[x] & 0x80) == 1 {
 					sys.registers[0xF] = 1
 				} else {
 					sys.registers[0xF] = 0
@@ -256,29 +256,36 @@ func (sys *System) parseInstruction() error {
 	// DRW
 	case 0xD000:
 		sys.registers[0xF] = 0
+		width, _ := termbox.Size()
+		cells := termbox.CellBuffer()
 
-		for i := uint16(0); i < n; i++ {
-			toDraw := sys.memory[sys.iregister + i]
+		for yOffset := uint16(0); yOffset < n; yOffset++ {
+			yAdjusted := uint16(sys.registers[y]) + yOffset
+			if yAdjusted >= DISPLAY_HEIGHT {
+				yAdjusted %= DISPLAY_HEIGHT
+			}
+
+			toDraw := sys.memory[sys.iregister + yOffset]
 			toDrawBits, err := bits(toDraw)
 			if err != nil {
 				return err
 			}
 
-			cells := termbox.CellBuffer()
-			width, _ := termbox.Size()
-
-			for j := uint16(0); j < uint16(len(toDrawBits)); j++ {
-				prev := sys.display[y + i][x + j]
-				sys.display[y + i][x + j] = sys.display[y + i][x + j] != toDrawBits[j]
-
-				if (prev == true) && (sys.display[y + i][x + j] != true) {
-					sys.registers[0xF] = 1
+			for xOffset := uint16(0); xOffset < uint16(len(toDrawBits)); xOffset++ {
+				xAdjusted := uint16(sys.registers[x]) + xOffset
+				if xAdjusted >= DISPLAY_WIDTH {
+					xAdjusted %= DISPLAY_WIDTH
 				}
 
-				if sys.display[y + i][x + j] {
-					cells[(uint16(width) * (y + i)) + (x + j)].Ch = '█'
+				if toDrawBits[xOffset] && sys.display[yAdjusted][xAdjusted] {
+					sys.registers[0xF] = 1
+				}
+				sys.display[yAdjusted][xAdjusted] = sys.display[yAdjusted][xAdjusted] != toDrawBits[xOffset]
+
+				if sys.display[yAdjusted][xAdjusted] {
+					cells[(uint16(width) * yAdjusted) + xAdjusted].Ch = '█'
 				} else {
-					cells[(uint16(width) * (y + i)) + (x + j)].Ch = ' '
+					cells[(uint16(width) * yAdjusted) + xAdjusted].Ch = ' '
 				}
 			}
 		}
@@ -353,24 +360,16 @@ func (sys *System) parseInstruction() error {
 
 		// LD - Set I to the value of the location of the sprite
 		case 0x0029:
-			sys.iregister = uint16(sys.registers[x] * 5)
+			sys.iregister = uint16(sys.registers[x]) * 5
 
 			sys.incrementPC(false)
 			break
 
 		// LD - Store BCD representation in to I, I+1, I+2
 		case 0x0033:
-			val := sys.registers[x]
-
-			hundred := (val / 100) * 100
-			val -= hundred
-			ten := (val / 10) * 10
-			val -= ten
-			one := val
-
-			sys.memory[sys.iregister] = hundred
-			sys.memory[sys.iregister + 1] = ten
-			sys.memory[sys.iregister + 2] = one
+			sys.memory[sys.iregister] = sys.registers[x] / 100
+			sys.memory[sys.iregister + 1] = (sys.registers[x] / 10) % 10
+			sys.memory[sys.iregister + 2] = (sys.registers[x] % 100) % 10
 
 			sys.incrementPC(false)
 			break
