@@ -269,7 +269,6 @@ func (sys *System) parseInstruction() error {
 				yAdjusted %= DISPLAY_HEIGHT
 			}
 
-			//fmt.Println(sys.iregister, yOffset)
 			toDraw := sys.memory[sys.iregister + yOffset]
 			toDrawBits, err := bits(toDraw)
 			if err != nil {
@@ -306,6 +305,10 @@ func (sys *System) parseInstruction() error {
 		case 0x009E:
 			if sys.keys[sys.registers[x]] {
 				sys.incrementPC(true)
+
+				sys.keys[sys.registers[x]] = false
+				sys.keyTimers[sys.registers[x]].Stop()
+				sys.keyTimers[sys.registers[x]] = nil
 			} else {
 				sys.incrementPC(false)
 			}
@@ -315,9 +318,14 @@ func (sys *System) parseInstruction() error {
 		case 0x00A1:
 			if sys.keys[sys.registers[x]] {
 				sys.incrementPC(false)
+
+				sys.keys[sys.registers[x]] = false
+				sys.keyTimers[sys.registers[x]].Stop()
+				sys.keyTimers[sys.registers[x]] = nil
 			} else {
 				sys.incrementPC(true)
 			}
+			break
 
 		default:
 			return fmt.Errorf("Invalid operation 0x%04X", op)
