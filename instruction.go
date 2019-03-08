@@ -77,8 +77,10 @@ func (sys *System) parseInstruction() error {
 
 	// CALL - call subroutine
 	case 0x2000:
-		// FIXME handle error
-		sys.stack.push(sys.programCounter)
+		err := sys.stack.push(sys.programCounter)
+		if err != nil {
+			return err
+		}
 		sys.programCounter = nnn
 
 		break
