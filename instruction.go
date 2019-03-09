@@ -187,11 +187,7 @@ func (sys *System) parseInstruction() error {
 
 			// SHR
 			case 0x6:
-				if (sys.registers[x] & 0x1) == 1 {
-					sys.registers[0xF] = 1
-				} else {
-					sys.registers[0xF] = 0
-				}
+				sys.registers[0xF] = sys.registers[x] & 0x1
 
 				sys.registers[x] >>= 1
 
@@ -213,11 +209,7 @@ func (sys *System) parseInstruction() error {
 
 			// SHL
 			case 0xE:
-				if (sys.registers[x] & 0x80) == 1 {
-					sys.registers[0xF] = 1
-				} else {
-					sys.registers[0xF] = 0
-				}
+				sys.registers[0xF] = (sys.registers[x] >> 7) & 0x1
 
 				sys.registers[x] <<= 1
 
